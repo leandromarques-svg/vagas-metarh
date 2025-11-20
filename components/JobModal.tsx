@@ -1,7 +1,7 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SelectyJobResponse } from '../types';
-import { X, MapPin, Briefcase, Clock, ExternalLink, Building2, Hash } from 'lucide-react';
+import { X, MapPin, Briefcase, Clock, ExternalLink, Building2, Hash, Share2, Check } from 'lucide-react';
 
 interface JobModalProps {
   job: SelectyJobResponse;
@@ -9,6 +9,7 @@ interface JobModalProps {
 }
 
 export const JobModal: React.FC<JobModalProps> = ({ job, onClose }) => {
+  const [isCopied, setIsCopied] = useState(false);
   
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -17,6 +18,32 @@ export const JobModal: React.FC<JobModalProps> = ({ job, onClose }) => {
       document.body.style.overflow = 'unset';
     };
   }, []);
+
+  const handleShare = async () => {
+    const shareData = {
+      title: `Vaga: ${job.title}`,
+      text: `Confira esta oportunidade para ${job.title} na MetaRH!`,
+      url: job.url_apply || window.location.href
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // User cancelled or not supported
+        console.log("Share cancelled");
+      }
+    } else {
+      // Fallback for desktop
+      try {
+        await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      } catch (err) {
+        console.error("Clipboard failed", err);
+      }
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -107,16 +134,28 @@ export const JobModal: React.FC<JobModalProps> = ({ job, onClose }) => {
         <div className="p-6 sm:p-8 border-t border-slate-100 bg-slate-50 rounded-b-3xl flex flex-col sm:flex-row justify-end gap-3 shrink-0">
           <button
             onClick={onClose}
-            className="px-6 py-3 rounded-full border border-slate-300 text-slate-700 font-bold hover:bg-white hover:border-slate-400 focus:ring-2 focus:ring-slate-200 transition-all"
+            className="px-6 py-3 rounded-full border border-slate-300 text-slate-700 font-bold hover:bg-white hover:border-slate-400 focus:ring-2 focus:ring-slate-200 transition-all order-2 sm:order-1"
           >
             Fechar
+          </button>
+
+          <button
+            onClick={handleShare}
+            className={`px-6 py-3 rounded-full border font-bold transition-all flex items-center justify-center gap-2 order-3 sm:order-2
+                ${isCopied 
+                    ? 'bg-green-50 border-green-200 text-green-700' 
+                    : 'border-brand-200 text-brand-600 hover:bg-brand-50 hover:border-brand-300'
+                }`}
+          >
+            {isCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+            {isCopied ? 'Copiado!' : 'Compartilhar'}
           </button>
           
           <a
             href={job.url_apply || '#'}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center px-8 py-3 rounded-full bg-brand-600 text-white font-bold shadow-md hover:bg-brand-700 hover:shadow-lg transform active:scale-95 transition-all"
+            className="flex items-center justify-center px-8 py-3 rounded-full bg-brand-600 text-white font-bold shadow-md hover:bg-brand-700 hover:shadow-lg transform active:scale-95 transition-all order-1 sm:order-3 w-full sm:w-auto"
           >
             Candidatar-se
             <ExternalLink className="w-4 h-4 ml-2" />
