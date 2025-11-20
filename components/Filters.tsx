@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { JobFilterState } from '../types';
 import { Search, MapPin, Briefcase, ChevronDown, Check, Hash, SlidersHorizontal, X } from 'lucide-react';
@@ -40,7 +41,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ label, icon, value, options
 
   return (
     <div className="relative w-full" ref={containerRef}>
-      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">{label}</label>
+      <label className="block text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">{label}</label>
       <div className="relative">
         <button
           type="button"
@@ -122,12 +123,12 @@ export const Filters: React.FC<FiltersProps> = ({ filters, setFilters, locations
       <div className="bg-white rounded-3xl md:rounded-[2rem] shadow-sm border border-slate-100 p-4 md:p-6 transition-all duration-300">
         
         {/* Row 1: Always Visible (Search + Mobile Toggle) */}
-        <div className="flex gap-3 items-end">
+        <div className="flex gap-3 items-end w-full">
           
-          {/* Keyword Search - Grows to fill space */}
-          <div className="flex-grow relative">
+          {/* Keyword Search - Grows to fill ALL remaining space (flex-1) */}
+          <div className="flex-1 relative min-w-[200px]">
             <label className="block md:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Busca rápida</label>
-            <label className="hidden md:block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">O que busca?</label>
+            <label className="hidden md:block text-sm font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">O que busca?</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-brand-400" />
@@ -158,11 +159,11 @@ export const Filters: React.FC<FiltersProps> = ({ filters, setFilters, locations
             )}
           </button>
 
-          {/* Desktop: Inline Filters (Hidden on Mobile in this row) */}
-          <div className="hidden md:grid md:grid-cols-8 gap-4 flex-grow-[2]">
+          {/* Desktop: Inline Filters - Compact Flex Layout */}
+          <div className="hidden md:flex items-end gap-2 shrink-0">
              {/* Job Code */}
-            <div className="col-span-1">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Cód.</label>
+            <div className="w-20">
+                <label className="block text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Cód.</label>
                 <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Hash className="h-3 w-3 text-brand-400" />
@@ -177,7 +178,8 @@ export const Filters: React.FC<FiltersProps> = ({ filters, setFilters, locations
                 </div>
             </div>
 
-             <div className="col-span-3">
+             {/* Location */}
+             <div className="w-52 lg:w-64">
                 <CustomSelect 
                     label="Localização"
                     icon={<MapPin />}
@@ -188,7 +190,8 @@ export const Filters: React.FC<FiltersProps> = ({ filters, setFilters, locations
                 />
              </div>
 
-             <div className="col-span-3">
+             {/* Department */}
+             <div className="w-52 lg:w-64">
                 <CustomSelect 
                     label="Departamento"
                     icon={<Briefcase />}
@@ -199,7 +202,8 @@ export const Filters: React.FC<FiltersProps> = ({ filters, setFilters, locations
                 />
              </div>
 
-             <div className="col-span-1 flex items-end justify-end pb-0.5">
+             {/* Clean Button */}
+             <div className="pb-0.5 pl-1">
                 <button 
                     onClick={clearFilters}
                     className="p-2.5 rounded-full text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"

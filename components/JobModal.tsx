@@ -26,21 +26,32 @@ export const JobModal: React.FC<JobModalProps> = ({ job, onClose }) => {
       url: job.url_apply || window.location.href
     };
 
+    let shared = false;
+
+    // Tenta usar a API nativa de compartilhamento (Mobile/Supported Browsers)
     if (navigator.share) {
       try {
         await navigator.share(shareData);
+        shared = true;
       } catch (err) {
-        // User cancelled or not supported
-        console.log("Share cancelled");
+        // Se o usuário cancelar ou a API falhar (ex: contexto não seguro), 
+        // ignoramos e tentamos o fallback de clipboard abaixo, a menos que seja cancelamento de usuário.
+        console.log("Tentativa de share nativo falhou ou foi cancelada, tentando clipboard.", err);
       }
-    } else {
-      // Fallback for desktop
+    }
+
+    // Se não compartilhou via nativo (por erro ou não suporte), usa o Clipboard
+    if (!shared) {
       try {
         await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
       } catch (err) {
-        console.error("Clipboard failed", err);
+        console.error("Falha ao copiar para a área de transferência", err);
+        // Fallback extremo: alertar o usuário se tudo falhar
+        if (!navigator.clipboard) {
+             alert("Não foi possível copiar o link automaticamente. Por favor, copie a URL do navegador.");
+        }
       }
     }
   };
