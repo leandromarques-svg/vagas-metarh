@@ -27,33 +27,51 @@ export default function App() {
 
   // --- Iframe Resizer Logic ---
   useEffect(() => {
-    // Função para enviar a altura atual para o pai (WordPress/Elementor)
+    let lastHeight = 0;
+    let resizeTimer: ReturnType<typeof setTimeout>;
+
     const sendHeight = () => {
-      const height = document.documentElement.scrollHeight;
-      // Envia mensagem segura para o parente
-      window.parent.postMessage({ type: 'setHeight', height: height }, '*');
+      const root = document.getElementById('root');
+      if (!root) return;
+
+      // Use scrollHeight of the root container to get accurate content height
+      const height = root.scrollHeight;
+      
+      // Check threshold to prevent infinite loops (1px jitter)
+      // Only update if height changed by more than 2 pixels
+      if (Math.abs(height - lastHeight) > 2) {
+        lastHeight = height;
+        window.parent.postMessage({ type: 'setHeight', height: height }, '*');
+      }
     };
 
-    // 1. Envia altura inicial
-    sendHeight();
+    const debouncedSendHeight = () => {
+      clearTimeout(resizeTimer);
+      // Debounce to prevent rapid firing during layout reflows
+      resizeTimer = setTimeout(sendHeight, 50);
+    };
 
-    // 2. Observa mudanças no tamanho do corpo da página (ex: carregou mais vagas)
-    const resizeObserver = new ResizeObserver(() => {
-      sendHeight();
-    });
+    // 1. Initial send
+    debouncedSendHeight();
+
+    // 2. Observer attached to root element instead of body to avoid iframe window resize loops
+    const resizeObserver = new ResizeObserver(debouncedSendHeight);
+    const root = document.getElementById('root');
+    if (root) {
+      resizeObserver.observe(root);
+    }
     
-    resizeObserver.observe(document.body);
-    
-    // 3. Envia altura também no redimensionamento da janela e carregamento de imagens
-    window.addEventListener('resize', sendHeight);
-    window.addEventListener('load', sendHeight);
+    // 3. Window resize/load events
+    window.addEventListener('resize', debouncedSendHeight);
+    window.addEventListener('load', debouncedSendHeight);
 
     return () => {
       resizeObserver.disconnect();
-      window.removeEventListener('resize', sendHeight);
-      window.removeEventListener('load', sendHeight);
+      window.removeEventListener('resize', debouncedSendHeight);
+      window.removeEventListener('load', debouncedSendHeight);
+      clearTimeout(resizeTimer);
     };
-  }, [visibleCount, jobs, loading, filters]); // Reexecuta se dados mudarem
+  }, [visibleCount, jobs, loading, filters, selectedJob]); // Re-run if major state changes affecting layout occur
 
   const loadData = async () => {
     setLoading(true);
@@ -77,15 +95,20 @@ export default function App() {
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
     // Scroll suave para o topo da lista de vagas ao filtrar
-    // Ajuste: usa window.scrollTo mas considera um offset para não cobrir o filtro se ele for sticky (opcional)
     const jobsContainer = document.getElementById('jobs-container');
     if (jobsContainer) {
-        // Pequeno timeout para garantir que o DOM atualizou antes de scrollar
         setTimeout(() => {
-            const yOffset = -20; 
-            const element = jobsContainer;
-            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-            window.scrollTo({top: y, behavior: 'smooth'});
+            // Check if inside iframe context for scroll behavior
+            const isInIframe = window.self !== window.top;
+            if (!isInIframe) {
+                const yOffset = -20; 
+                const element = jobsContainer;
+                const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                window.scrollTo({top: y, behavior: 'smooth'});
+            } else {
+                // In iframe, we might want to send a message to parent to scroll, or just do nothing 
+                // to avoid jarring jumps if the parent handles scrolling
+            }
         }, 100);
     }
   }, [filters]);
@@ -140,7 +163,7 @@ export default function App() {
   };
 
   return (
-    // REMOVIDO: min-h-screen e overflow-x-hidden para evitar conflitos de scroll em iframes/embeds
+    // Removed flex-1 logic to ensure natural height calculation
     <div className="bg-transparent font-sans w-full flex flex-col text-slate-900">
       
       {/* Header / Filtros */}
@@ -155,8 +178,8 @@ export default function App() {
         </div>
       </div>
 
-      {/* Área de Conteúdo - Cresce naturalmente */}
-      <main id="jobs-container" className="flex-1 px-4 py-8">
+      {/* Área de Conteúdo - Removed flex-1 to prevent forced expansion */}
+      <main id="jobs-container" className="px-4 py-8 w-full">
           <div className="max-w-7xl mx-auto">
             
             <div className="flex items-baseline justify-between mb-6">
