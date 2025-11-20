@@ -6,7 +6,7 @@ import { JobModal } from './components/JobModal';
 import { Filters } from './components/Filters';
 import { Loader2, Briefcase, CircleAlert, RefreshCw, Plus } from 'lucide-react';
 
-const ITEMS_PER_PAGE = 9; // Aumentei um pouco o load inicial já que agora a página rola livremente
+const ITEMS_PER_PAGE = 9;
 
 export default function App() {
   const [jobs, setJobs] = useState<SelectyJobResponse[]>([]);
@@ -94,24 +94,25 @@ export default function App() {
   // Reset visible count to initial when filters change
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
-    // Scroll suave para o topo da lista de vagas ao filtrar
-    const jobsContainer = document.getElementById('jobs-container');
-    if (jobsContainer) {
-        setTimeout(() => {
-            // Check if inside iframe context for scroll behavior
-            const isInIframe = window.self !== window.top;
-            if (!isInIframe) {
-                const yOffset = -20; 
-                const element = jobsContainer;
-                const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-                window.scrollTo({top: y, behavior: 'smooth'});
-            } else {
-                // In iframe, we might want to send a message to parent to scroll, or just do nothing 
-                // to avoid jarring jumps if the parent handles scrolling
-            }
-        }, 100);
-    }
   }, [filters]);
+
+  // Handler para abrir detalhes da vaga
+  const handleShowDetails = (job: SelectyJobResponse) => {
+    setSelectedJob(job);
+    // Scroll para o topo para garantir visibilidade no iframe
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Tenta comunicar com a página pai para rolar também, se possível
+    try {
+        window.parent.postMessage({ type: 'scrollToTop' }, '*');
+    } catch (e) { /* ignore */ }
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedJob(null);
+    // Scroll para o topo ao voltar para a lista
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
 
   // Derive unique filter options
   const locations = useMemo(() => {
@@ -163,112 +164,115 @@ export default function App() {
   };
 
   return (
-    // Removed flex-1 logic to ensure natural height calculation
-    <div className="bg-transparent font-sans w-full flex flex-col text-slate-900">
+    <div className="bg-transparent font-sans w-full flex flex-col text-slate-900 min-h-[100px]">
       
-      {/* Header / Filtros */}
-      <div className="w-full z-20 bg-white/80 backdrop-blur-sm border-b border-slate-200 shadow-sm sticky top-0">
-        <div className="max-w-7xl mx-auto px-4 pt-4 pb-4">
-            <Filters 
-            filters={filters}
-            setFilters={setFilters}
-            locations={locations}
-            departments={departments}
+      {/* Renderização Condicional: Detalhes OU Lista */}
+      {selectedJob ? (
+        <div className="max-w-4xl mx-auto w-full px-4 py-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+           <JobModal 
+              job={selectedJob} 
+              onClose={handleCloseDetails} 
             />
         </div>
-      </div>
-
-      {/* Área de Conteúdo - Removed flex-1 to prevent forced expansion */}
-      <main id="jobs-container" className="px-4 py-8 w-full">
-          <div className="max-w-7xl mx-auto">
-            
-            <div className="flex items-baseline justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                    Oportunidades Disponíveis
-                    <span className="ml-3 text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                        {filteredJobs.length} vagas
-                    </span>
-                </h2>
+      ) : (
+        <>
+          {/* Header / Filtros */}
+          <div className="w-full z-20 bg-white/80 backdrop-blur-sm border-b border-slate-200 shadow-sm sticky top-0">
+            <div className="max-w-7xl mx-auto px-4 pt-4 pb-4">
+                <Filters 
+                filters={filters}
+                setFilters={setFilters}
+                locations={locations}
+                departments={departments}
+                />
             </div>
-
-            {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border border-slate-100">
-                    <Loader2 className="w-10 h-10 text-brand-600 animate-spin mb-4" />
-                    <p className="text-slate-600 font-semibold">Carregando oportunidades...</p>
-                </div>
-            ) : error ? (
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center max-w-2xl mx-auto my-10">
-                    <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-4">
-                    <CircleAlert className="h-7 w-7 text-red-600" />
-                    </div>
-                    <h3 className="text-xl font-bold text-red-900 mb-2">Não foi possível carregar as vagas</h3>
-                    <p className="text-red-700 mb-6 text-sm max-w-md mx-auto">
-                    Houve um problema ao conectar com a plataforma de vagas.
-                    </p>
-                    <button 
-                    onClick={loadData}
-                    className="inline-flex items-center justify-center bg-white text-red-700 border border-red-200 hover:bg-red-50 font-bold py-3 px-8 rounded-full transition-colors shadow-sm"
-                    >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Tentar Novamente
-                    </button>
-                </div>
-            ) : filteredJobs.length > 0 ? (
-                <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-                        {visibleJobs.map(job => (
-                        <JobCard 
-                            key={job.id} 
-                            job={job} 
-                            onShowDetails={setSelectedJob}
-                        />
-                        ))}
-                    </div>
-                    
-                    {hasMore && (
-                        <div className="flex justify-center pb-10">
-                            <button 
-                                onClick={handleLoadMore}
-                                className="group flex items-center px-8 py-4 bg-white border border-brand-200 text-brand-700 font-bold rounded-full shadow-sm hover:shadow-md hover:border-brand-400 hover:bg-brand-50 transition-all duration-300"
-                            >
-                                <Plus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                                Carregar mais vagas
-                            </button>
-                        </div>
-                    )}
-
-                    {!hasMore && filteredJobs.length > ITEMS_PER_PAGE && (
-                        <div className="text-center pb-10 text-slate-400 text-sm font-medium">
-                            Você visualizou todas as vagas disponíveis.
-                        </div>
-                    )}
-                </>
-            ) : (
-                <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border border-slate-100 border-dashed">
-                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-white shadow-sm mb-5">
-                        <Briefcase className="h-7 w-7 text-slate-400" />
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900">Nenhuma vaga encontrada</h3>
-                    <p className="mt-2 text-slate-500 max-w-sm mx-auto text-center">
-                    Tente ajustar os filtros de busca acima.
-                    </p>
-                    <button 
-                    onClick={() => setFilters({ keyword: '', location: '', department: '', jobCode: '' })}
-                    className="mt-6 inline-flex items-center px-6 py-3 border border-transparent text-sm font-bold rounded-full text-white bg-brand-600 hover:bg-brand-700 transition-colors shadow-md"
-                    >
-                    Limpar filtros
-                    </button>
-                </div>
-            )}
           </div>
-      </main>
 
-      {/* Job Details Modal */}
-      {selectedJob && (
-        <JobModal 
-          job={selectedJob} 
-          onClose={() => setSelectedJob(null)} 
-        />
+          {/* Área de Conteúdo */}
+          <main id="jobs-container" className="px-4 py-8 w-full">
+              <div className="max-w-7xl mx-auto">
+                
+                <div className="flex items-baseline justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                        Oportunidades Disponíveis
+                        <span className="ml-3 text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                            {filteredJobs.length} vagas
+                        </span>
+                    </h2>
+                </div>
+
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border border-slate-100">
+                        <Loader2 className="w-10 h-10 text-brand-600 animate-spin mb-4" />
+                        <p className="text-slate-600 font-semibold">Carregando oportunidades...</p>
+                    </div>
+                ) : error ? (
+                    <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center max-w-2xl mx-auto my-10">
+                        <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-4">
+                        <CircleAlert className="h-7 w-7 text-red-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-red-900 mb-2">Não foi possível carregar as vagas</h3>
+                        <p className="text-red-700 mb-6 text-sm max-w-md mx-auto">
+                        Houve um problema ao conectar com a plataforma de vagas.
+                        </p>
+                        <button 
+                        onClick={loadData}
+                        className="inline-flex items-center justify-center bg-white text-red-700 border border-red-200 hover:bg-red-50 font-bold py-3 px-8 rounded-full transition-colors shadow-sm"
+                        >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Tentar Novamente
+                        </button>
+                    </div>
+                ) : filteredJobs.length > 0 ? (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+                            {visibleJobs.map(job => (
+                            <JobCard 
+                                key={job.id} 
+                                job={job} 
+                                onShowDetails={handleShowDetails}
+                            />
+                            ))}
+                        </div>
+                        
+                        {hasMore && (
+                            <div className="flex justify-center pb-10">
+                                <button 
+                                    onClick={handleLoadMore}
+                                    className="group flex items-center px-8 py-4 bg-white border border-brand-200 text-brand-700 font-bold rounded-full shadow-sm hover:shadow-md hover:border-brand-400 hover:bg-brand-50 transition-all duration-300"
+                                >
+                                    <Plus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                                    Carregar mais vagas
+                                </button>
+                            </div>
+                        )}
+
+                        {!hasMore && filteredJobs.length > ITEMS_PER_PAGE && (
+                            <div className="text-center pb-10 text-slate-400 text-sm font-medium">
+                                Você visualizou todas as vagas disponíveis.
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border border-slate-100 border-dashed">
+                        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-white shadow-sm mb-5">
+                            <Briefcase className="h-7 w-7 text-slate-400" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900">Nenhuma vaga encontrada</h3>
+                        <p className="mt-2 text-slate-500 max-w-sm mx-auto text-center">
+                        Tente ajustar os filtros de busca acima.
+                        </p>
+                        <button 
+                        onClick={() => setFilters({ keyword: '', location: '', department: '', jobCode: '' })}
+                        className="mt-6 inline-flex items-center px-6 py-3 border border-transparent text-sm font-bold rounded-full text-white bg-brand-600 hover:bg-brand-700 transition-colors shadow-md"
+                        >
+                        Limpar filtros
+                        </button>
+                    </div>
+                )}
+              </div>
+          </main>
+        </>
       )}
     </div>
   );

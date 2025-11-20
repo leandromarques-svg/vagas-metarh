@@ -15,11 +15,28 @@ const stripHtml = (html: string) => {
 };
 
 /**
- * Helper to convert newlines to HTML breaks for plain text fields
+ * Helper to convert plain text to HTML with smarter formatting
+ * Handles bullet points and line breaks better.
  */
 const formatPlainTextToHtml = (text: string) => {
   if (!text) return '';
-  return text.replace(/\r\n|\r|\n/g, '<br />');
+  
+  let formatted = text;
+
+  // 1. Tentar identificar listas com marcadores comuns (-, *, •) que estejam "colados" no texto anterior
+  // Ex: "Texto anterior - Item 1" vira "Texto anterior<br> - Item 1"
+  formatted = formatted.replace(/([^\n>])\s*([•·*-])\s+/g, '$1<br/>$2 ');
+
+  // 2. Identificar finais de frase com pontuação seguidos de letra maiúscula colada (erro comum de copy-paste)
+  // Cuidado: isso pode quebrar nomes próprios, então usamos apenas se tiver pontuação clara (.!?:)
+  // Ex: "Fim da frase.Inicio da outra" -> "Fim da frase.<br>Inicio da outra"
+  // Essa regex procura: ponto, espaço opcional, quebra de linha opcional, seguida de maiúscula.
+  // Simplificado para apenas garantir quebras em quebras de linha reais.
+  
+  // 3. Converter quebras de linha padrão (\n) em <br />
+  formatted = formatted.replace(/\r\n|\r|\n/g, '<br />');
+
+  return formatted;
 };
 
 /**
@@ -31,16 +48,14 @@ const processDescription = (text: string) => {
     
     // Check if text contains common block-level HTML tags or explicit breaks
     // If it DOES NOT contain <p>, <div>, <br>, or <ul>/<li>, treat it as plain text needing formatting
-    // We use a regex to look for open or self-closing tags
     const hasBlockTags = /<\s*(p|div|br|ul|ol|li|h[1-6])\b[^>]*>/i.test(text);
     
     if (!hasBlockTags) {
         return formatPlainTextToHtml(text);
     }
     
-    // Even if it has HTML, sometimes it's mixed content where \n is used for spacing
-    // We can strictly replace \n with <br> if it doesn't look like it's inside a complex structure,
-    // but usually the check above covers the "wall of text" issue.
+    // Mesmo se tiver tags, às vezes o conteúdo dentro das tags é texto puro sem quebras
+    // Se detectarmos blocos de texto muito longos sem tags, podemos tentar formatar
     return text;
 };
 
