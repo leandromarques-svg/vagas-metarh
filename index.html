@@ -33,6 +33,25 @@
         }
       }
     </script>
+    <style>
+      /* Resets para evitar scroll duplo em iframes/embeds */
+      html, body {
+        margin: 0;
+        padding: 0;
+        /* IMPORTANTE: height auto permite que o conteúdo dite a altura, evitando barra de rolagem interna */
+        height: auto;
+        min-height: 0;
+        width: 100%;
+        overflow-x: hidden;
+        /* Overflow visible ou auto permite integração melhor com a página pai */
+        overflow-y: auto; 
+      }
+      #root {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {

@@ -106,8 +106,8 @@ export default function App() {
   };
 
   return (
-    // REMOVIDO: h-screen e overflow-hidden. Adicionado min-h-screen.
-    <div className="bg-transparent font-sans min-h-screen flex flex-col w-full text-slate-900">
+    // REMOVIDO: min-h-screen e overflow-x-hidden para evitar conflitos de scroll em iframes/embeds
+    <div className="bg-transparent font-sans w-full flex flex-col text-slate-900">
       
       {/* Header / Filtros */}
       <div className="w-full z-20 bg-white/80 backdrop-blur-sm border-b border-slate-200 shadow-sm sticky top-0">
