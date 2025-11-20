@@ -25,6 +25,36 @@ export default function App() {
   // Visible Count State (Load More logic)
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
 
+  // --- Iframe Resizer Logic ---
+  useEffect(() => {
+    // Função para enviar a altura atual para o pai (WordPress/Elementor)
+    const sendHeight = () => {
+      const height = document.documentElement.scrollHeight;
+      // Envia mensagem segura para o parente
+      window.parent.postMessage({ type: 'setHeight', height: height }, '*');
+    };
+
+    // 1. Envia altura inicial
+    sendHeight();
+
+    // 2. Observa mudanças no tamanho do corpo da página (ex: carregou mais vagas)
+    const resizeObserver = new ResizeObserver(() => {
+      sendHeight();
+    });
+    
+    resizeObserver.observe(document.body);
+    
+    // 3. Envia altura também no redimensionamento da janela e carregamento de imagens
+    window.addEventListener('resize', sendHeight);
+    window.addEventListener('load', sendHeight);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', sendHeight);
+      window.removeEventListener('load', sendHeight);
+    };
+  }, [visibleCount, jobs, loading, filters]); // Reexecuta se dados mudarem
+
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -50,9 +80,13 @@ export default function App() {
     // Ajuste: usa window.scrollTo mas considera um offset para não cobrir o filtro se ele for sticky (opcional)
     const jobsContainer = document.getElementById('jobs-container');
     if (jobsContainer) {
-        const yOffset = -20; 
-        const y = jobsContainer.getBoundingClientRect().top + window.pageYOffset + yOffset;
-        window.scrollTo({top: y, behavior: 'smooth'});
+        // Pequeno timeout para garantir que o DOM atualizou antes de scrollar
+        setTimeout(() => {
+            const yOffset = -20; 
+            const element = jobsContainer;
+            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({top: y, behavior: 'smooth'});
+        }, 100);
     }
   }, [filters]);
 
