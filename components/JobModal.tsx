@@ -1,7 +1,6 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { SelectyJobResponse } from '../types';
-import { X, MapPin, Briefcase, Clock, ExternalLink, Building2, Hash, Share2, Check } from 'lucide-react';
+import { X, MapPin, Briefcase, Clock, ExternalLink, Building2, Hash } from 'lucide-react';
 
 interface JobModalProps {
   job: SelectyJobResponse;
@@ -9,7 +8,6 @@ interface JobModalProps {
 }
 
 export const JobModal: React.FC<JobModalProps> = ({ job, onClose }) => {
-  const [isCopied, setIsCopied] = useState(false);
   
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -18,43 +16,6 @@ export const JobModal: React.FC<JobModalProps> = ({ job, onClose }) => {
       document.body.style.overflow = 'unset';
     };
   }, []);
-
-  const handleShare = async () => {
-    const shareData = {
-      title: `Vaga: ${job.title}`,
-      text: `Confira esta oportunidade para ${job.title} na MetaRH!`,
-      url: job.url_apply || window.location.href
-    };
-
-    let shared = false;
-
-    // Tenta usar a API nativa de compartilhamento (Mobile/Supported Browsers)
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        shared = true;
-      } catch (err) {
-        // Se o usuário cancelar ou a API falhar (ex: contexto não seguro), 
-        // ignoramos e tentamos o fallback de clipboard abaixo, a menos que seja cancelamento de usuário.
-        console.log("Tentativa de share nativo falhou ou foi cancelada, tentando clipboard.", err);
-      }
-    }
-
-    // Se não compartilhou via nativo (por erro ou não suporte), usa o Clipboard
-    if (!shared) {
-      try {
-        await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2000);
-      } catch (err) {
-        console.error("Falha ao copiar para a área de transferência", err);
-        // Fallback extremo: alertar o usuário se tudo falhar
-        if (!navigator.clipboard) {
-             alert("Não foi possível copiar o link automaticamente. Por favor, copie a URL do navegador.");
-        }
-      }
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -149,24 +110,12 @@ export const JobModal: React.FC<JobModalProps> = ({ job, onClose }) => {
           >
             Fechar
           </button>
-
-          <button
-            onClick={handleShare}
-            className={`px-6 py-3 rounded-full border font-bold transition-all flex items-center justify-center gap-2 order-3 sm:order-2
-                ${isCopied 
-                    ? 'bg-green-50 border-green-200 text-green-700' 
-                    : 'border-brand-200 text-brand-600 hover:bg-brand-50 hover:border-brand-300'
-                }`}
-          >
-            {isCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-            {isCopied ? 'Copiado!' : 'Compartilhar'}
-          </button>
           
           <a
             href={job.url_apply || '#'}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center px-8 py-3 rounded-full bg-brand-600 text-white font-bold shadow-md hover:bg-brand-700 hover:shadow-lg transform active:scale-95 transition-all order-1 sm:order-3 w-full sm:w-auto"
+            className="flex items-center justify-center px-8 py-3 rounded-full bg-brand-600 text-white font-bold shadow-md hover:bg-brand-700 hover:shadow-lg transform active:scale-95 transition-all order-1 sm:order-2 w-full sm:w-auto"
           >
             Candidatar-se
             <ExternalLink className="w-4 h-4 ml-2" />
