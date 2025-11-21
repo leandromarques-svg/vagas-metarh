@@ -1,5 +1,5 @@
 {
-  "name": "vagas-metarh",
+  "name": "gerador-de-posts",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,6 +12,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "lucide-react": "^0.554.0",
+    "html-to-image": "^1.11.13",
     "@google/genai": "^1.30.0"
   },
   "devDependencies": {
