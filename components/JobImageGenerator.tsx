@@ -11,7 +11,7 @@ interface JobImageGeneratorProps {
   libraryImages: LibraryImage[];
 }
 
-const AVAILABLE_TAGS: ImageTag[] = ['Homem', 'Mulher', 'Negros', '50+', 'LGBTQIAPN+', 'PCD', 'Indígenas'];
+const AVAILABLE_TAGS: ImageTag[] = ['Homem', 'Mulher', 'Negros', '50+', 'LGBTQIAPN+', 'PCD', 'Indígenas', 'Jovem'];
 
 // Helper para hashtags padrão
 const getTags = (job: SelectyJobResponse) => {
@@ -66,6 +66,11 @@ const AFFIRMATIVE_CAPTIONS: Record<string, Array<(job: SelectyJobResponse, link:
         (job, link) => `🌿 DIVERSIDADE E INCLUSÃO\n\nOportunidade para ${job.title} (Foco em Pessoas Indígenas).\n\nQueremos construir um futuro onde todas as histórias têm espaço. Junte-se a nós!\n\n📍 ${job.city || 'Brasil'}\n\n👉 Link: ${link}\n\n#Indígenas #Oportunidade #MetaRH ${getTags(job)}`,
         (job, link) => `TALENTO E IDENTIDADE ✨\n\nEstamos contratando ${job.title} - Vaga Afirmativa para Indígenas.\n\nTraga sua potência para nosso time. Respeito e valorização em primeiro lugar.\n\n🔗 Detalhes: ${link}\n\n#VagaIndígena #Inclusão #Carreira #MetaRH ${getTags(job)}`
     ],
+    'Jovem': [
+        (job, link) => `⚡ OPORTUNIDADE JOVEM\n\nEstá em busca do seu espaço no mercado de trabalho? Temos uma vaga para ${job.title} ideal para quem tem energia e vontade de aprender.\n\nSe você é jovem e quer construir uma carreira sólida, vem com a gente!\n\n🔗 Inscreva-se: ${link}\n\n#JovemAprendiz #PrimeiroEmprego #Estágio #MetaRH ${getTags(job)}`,
+        (job, link) => `🚀 DECOLANDO NA CARREIRA\n\nVaga para ${job.title} com foco em jovens talentos.\n\nAcreditamos no potencial da juventude para inovar. Se você quer crescer profissionalmente, essa chance é sua.\n\n📍 ${job.city || 'Brasil'}\n\n👉 Candidate-se: ${link}\n\n#OportunidadeJovem #Carreira #MetaRH ${getTags(job)}`,
+        (job, link) => `FUTURO É AGORA 🌟\n\nEstamos contratando ${job.title}.\n\nBuscamos jovens dinâmicos e criativos para integrar nosso time. Não precisa de experiência, só de vontade de fazer acontecer!\n\n🔗 Link: ${link}\n\n#Juventude #Emprego #MetaRH ${getTags(job)}`
+    ],
     'Afirmativa (Geral)': [
         (job, link) => `🤝 VAGA AFIRMATIVA\n\nEstamos com oportunidade para ${job.title} focada em aumentar a diversidade do nosso time.\n\nSe você faz parte de grupos sub-representados, queremos conhecer seu talento!\n\n🔗 Candidate-se: ${link}\n\n#DiversidadeeInclusão #VagaAfirmativa #MetaRH ${getTags(job)}`,
         (job, link) => `🌟 DIVERSIDADE IMPORTA\n\nBuscamos ${job.title} para somar ao nosso time (Vaga Afirmativa).\n\nValorizamos diferentes perspectivas e vivências. Venha crescer com a gente!\n\n👉 Inscreva-se: ${link}\n\n#Inclusão #Oportunidade #MetaRH ${getTags(job)}`,
@@ -96,7 +101,7 @@ const COLORS = {
 
 const CONTRACT_OPTIONS = ['CLT (Efetivo)', 'PJ', 'Estágio', 'Temporário', 'Freelance', 'Trainee'];
 const MODALITY_OPTIONS = ['Presencial', 'Híbrido', 'Remoto'];
-const DIVERSITY_OPTIONS = ['Mulheres', 'Pessoas Negras', 'Pessoas com Deficiência', 'LGBTQIAPN+', '50+', 'Pessoas Indígenas', 'Afirmativa (Geral)'];
+const DIVERSITY_OPTIONS = ['Mulheres', 'Pessoas Negras', 'Pessoas com Deficiência', 'LGBTQIAPN+', '50+', 'Pessoas Indígenas', 'Jovem', 'Afirmativa (Geral)'];
 
 const useBase64Image = (url: string | null) => {
   const [dataSrc, setDataSrc] = useState<string | undefined>(undefined);

@@ -7,11 +7,11 @@ import { JobCard } from './components/JobCard';
 import { JobModal } from './components/JobModal';
 import { JobImageGenerator } from './components/JobImageGenerator';
 import { Filters } from './components/Filters';
-import { Loader2, Briefcase, CircleAlert, RefreshCw, Plus, Wand2, Palette, Clock, HeartHandshake, Sparkles, Image as ImageIcon, Upload, Trash2, X, CheckCircle, Settings, Database, FileCode } from 'lucide-react';
+import { Loader2, Briefcase, CircleAlert, RefreshCw, Plus, Wand2, Palette, Clock, HeartHandshake, Sparkles, Image as ImageIcon, Upload, Trash2, X, CheckCircle, Settings, Database, FileCode, Tag } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 
 const ITEMS_PER_PAGE = 9;
-const AVAILABLE_TAGS: ImageTag[] = ['Homem', 'Mulher', 'Negros', '50+', 'LGBTQIAPN+', 'PCD', 'Indígenas'];
+const AVAILABLE_TAGS: ImageTag[] = ['Homem', 'Mulher', 'Negros', '50+', 'LGBTQIAPN+', 'PCD', 'Indígenas', 'Jovem'];
 
 // Helper: Converte Base64 para Blob (necessário para upload no Supabase)
 const base64ToBlob = (base64: string): Blob => {
@@ -101,6 +101,11 @@ export default function App() {
   const [tempUploadImages, setTempUploadImages] = useState<string[]>([]);
   const [newImageTags, setNewImageTags] = useState<ImageTag[]>([]);
   const [supabaseError, setSupabaseError] = useState<string | null>(null);
+
+  // Edit Tags State
+  const [editingImage, setEditingImage] = useState<LibraryImage | null>(null);
+  const [editingTags, setEditingTags] = useState<ImageTag[]>([]);
+  const [isSavingTags, setIsSavingTags] = useState(false);
 
   // Filter State
   const [filters, setFilters] = useState<JobFilterState>({
@@ -258,7 +263,7 @@ export default function App() {
   };
 
   const handleRemoveImage = async (id: string, url: string) => {
-      if (!confirm('Tem certeza que deseja excluir esta imagem permanentemente? Isso liberará espaço no Supabase.')) return;
+      if (!confirm('Tem certeza que deseja excluir esta imagem permanentemente?')) return;
 
       if (isSupabaseConfigured && supabase) {
         // Cloud Delete
@@ -272,8 +277,6 @@ export default function App() {
             if (dbError) throw dbError;
 
             // 2. Try to delete from Storage
-            // Extract filename from URL. Usually it's at the end after the last slash.
-            // Example: .../images/upload-123.jpg
             try {
                 const fileName = url.substring(url.lastIndexOf('/') + 1);
                 // Need to decode in case of spaces/special chars encoded in URL
@@ -298,6 +301,47 @@ export default function App() {
         setCustomImages(updated);
         localStorage.setItem('metarh_custom_images', JSON.stringify(updated));
       }
+  };
+  
+  const handleUpdateTags = async () => {
+    if (!editingImage) return;
+    setIsSavingTags(true);
+    
+    try {
+        if (isSupabaseConfigured && supabase) {
+            const { error } = await supabase
+                .from('library_images')
+                .update({ tags: editingTags })
+                .eq('id', editingImage.id);
+
+            if (error) throw error;
+        } 
+        
+        // Update Local State regardless of backend (optimistic or fallback)
+        const updatedImages = customImages.map(img => 
+            img.id === editingImage.id ? { ...img, tags: editingTags } : img
+        );
+        setCustomImages(updatedImages);
+        
+        if (!isSupabaseConfigured || !supabase) {
+            localStorage.setItem('metarh_custom_images', JSON.stringify(updatedImages));
+        }
+        
+        setEditingImage(null);
+    } catch (e: any) {
+        alert("Erro ao atualizar tags: " + e.message);
+    } finally {
+        setIsSavingTags(false);
+    }
+  };
+
+  const handleOpenEditTags = (img: LibraryImage) => {
+      setEditingImage(img);
+      setEditingTags(img.tags);
+  };
+
+  const toggleEditingTag = (tag: ImageTag) => {
+      setEditingTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -371,7 +415,7 @@ export default function App() {
       window.removeEventListener('load', debouncedSendHeight);
       clearTimeout(resizeTimer);
     };
-  }, [visibleCount, jobs, loading, filters, selectedJob, jobForGenerator, stats, showImageAdmin, customImages, supabaseError]); 
+  }, [visibleCount, jobs, loading, filters, selectedJob, jobForGenerator, stats, showImageAdmin, customImages, supabaseError, editingImage]); 
 
   const loadData = async () => {
     setLoading(true);
@@ -499,7 +543,7 @@ export default function App() {
 
         {/* --- ADMIN PANEL --- */}
         {showImageAdmin && (
-            <div className="w-full bg-slate-50 border-b border-slate-200 animate-in slide-in-from-top-4 fade-in duration-300">
+            <div className="w-full bg-slate-50 border-b border-slate-200 animate-in slide-in-from-top-4 fade-in duration-300 relative">
                 <div className="max-w-7xl mx-auto px-4 py-6">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex flex-col">
@@ -507,7 +551,7 @@ export default function App() {
                                 <ImageIcon className="w-5 h-5 mr-2 text-brand-600" />
                                 Gerenciar Biblioteca
                                 <span className="ml-2 text-xs bg-white px-2 py-0.5 rounded-full border border-slate-200 text-slate-500">
-                                    {customImages.length} personalizadas
+                                    {customImages.length} imagens
                                 </span>
                             </h3>
                             <div className="flex items-center gap-1 mt-1 ml-7">
@@ -621,20 +665,32 @@ export default function App() {
                     {/* Gallery Grid */}
                     {customImages.length === 0 ? (
                         <div className="bg-white rounded-2xl p-8 text-center border border-dashed border-slate-300">
-                            <p className="text-slate-400 text-sm">Você ainda não adicionou nenhuma imagem personalizada.</p>
+                            <p className="text-slate-400 text-sm">Nenhuma imagem no banco. Adicione imagens para começar.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
                             {customImages.map((img) => (
                                 <div key={img.id} className="group relative aspect-square rounded-xl overflow-hidden bg-white shadow-sm border border-slate-100">
                                     <img src={img.url} alt="Custom" className="w-full h-full object-cover" />
+                                    
+                                    {/* Edit Button (Tag) */}
+                                    <button 
+                                        onClick={() => handleOpenEditTags(img)}
+                                        className="absolute top-1 left-1 bg-white text-brand-600 p-1.5 rounded-full shadow-md border border-slate-100 hover:bg-brand-50 transition-colors z-10 opacity-0 group-hover:opacity-100"
+                                        title="Editar Categorias"
+                                    >
+                                        <Tag className="w-3.5 h-3.5" />
+                                    </button>
+
+                                    {/* Delete Button */}
                                     <button 
                                         onClick={() => handleRemoveImage(img.id, img.url)}
-                                        className="absolute top-1 right-1 bg-white text-red-500 p-1.5 rounded-full shadow-md border border-slate-100 hover:bg-red-50 transition-colors z-10"
+                                        className="absolute top-1 right-1 bg-white text-red-500 p-1.5 rounded-full shadow-md border border-slate-100 hover:bg-red-50 transition-colors z-10 opacity-0 group-hover:opacity-100"
                                         title="Excluir e liberar espaço"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
                                     </button>
+                                    
                                     <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/70 to-transparent p-2 pt-6 pointer-events-none">
                                         <div className="flex flex-wrap gap-1 justify-center">
                                             {img.tags.slice(0, 2).map((t, i) => (
@@ -648,6 +704,54 @@ export default function App() {
                         </div>
                     )}
                 </div>
+
+                {/* Edit Tags Modal Overlay */}
+                {editingImage && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden relative" onClick={e => e.stopPropagation()}>
+                            <div className="p-6">
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">Editar Categorias</h3>
+                                <p className="text-sm text-slate-500 mb-6">Selecione as categorias para facilitar a busca desta imagem no gerador.</p>
+                                
+                                <div className="flex justify-center mb-6">
+                                    <img src={editingImage.url} className="h-40 w-auto rounded-xl shadow-md border border-slate-100" />
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 mb-8 justify-center">
+                                    {AVAILABLE_TAGS.map(tag => (
+                                        <button
+                                            key={tag}
+                                            onClick={() => toggleEditingTag(tag)}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                                                editingTags.includes(tag) ? 'bg-brand-600 text-white border-brand-600 shadow-sm' : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-brand-300'
+                                            }`}
+                                        >
+                                            {tag} {editingTags.includes(tag) && <CheckCircle className="w-3 h-3 inline ml-1" />}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={handleUpdateTags}
+                                        disabled={isSavingTags}
+                                        className="flex-1 bg-brand-600 text-white py-3 rounded-xl font-bold hover:bg-brand-700 transition-colors flex justify-center items-center gap-2"
+                                    >
+                                        {isSavingTags && <Loader2 className="w-4 h-4 animate-spin" />}
+                                        {isSavingTags ? 'Salvando...' : 'Salvar Alterações'}
+                                    </button>
+                                    <button 
+                                        onClick={() => setEditingImage(null)}
+                                        disabled={isSavingTags}
+                                        className="flex-1 bg-white border border-slate-200 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         )}
     </>
