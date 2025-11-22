@@ -47,7 +47,14 @@ export const Footer: React.FC = () => {
         
         <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500">
           <p>&copy; {new Date().getFullYear()} MetaRH. Todos os direitos reservados.</p>
-          <p className="mt-2 md:mt-0">Powered by Selecty</p>
+          <div className="mt-4 md:mt-0 flex items-center gap-2">
+            <span>Produzido por</span>
+            <img 
+                src="https://metarh.com.br/wp-content/uploads/2025/11/logo-metarh-azul.png" 
+                alt="MetaRH" 
+                className="h-6 w-auto opacity-80 hover:opacity-100 transition-opacity bg-white rounded px-1 py-0.5"
+            />
+          </div>
         </div>
       </div>
     </footer>
