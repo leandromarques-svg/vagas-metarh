@@ -1,5 +1,5 @@
 {
-  "name": "Fazedor de Vagas",
-  "description": "A dedicated career portal for MetaRH integrating with Selecty ATS to display job openings.",
+  "name": "Gerador de posts",
+  "description": "Gerador de posts Fixos para METARH",
   "requestFramePermissions": []
 }
