@@ -120,14 +120,19 @@ export const fetchJobs = async (): Promise<SelectyJobResponse[]> => {
     // Params: portal (optional but good practice), per_page
     
     const portalName = 'metarh'; // Derived from metarh.selecty.com.br
-    const url = `${API_BASE_URL}/jobfeed/index?portal=${portalName}&per_page=100&page=1`;
+    
+    // ADICIONADO: Timestamp para evitar cache do navegador ou do proxy
+    const timestamp = new Date().getTime();
+    const url = `${API_BASE_URL}/jobfeed/index?portal=${portalName}&per_page=100&page=1&_t=${timestamp}`;
     
     const jsonData = await fetchWithFallback(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
         // Documentation Page 43 specifies 'X-Api-Key' for jobfeed
-        'X-Api-Key': SELECTY_API_TOKEN 
+        'X-Api-Key': SELECTY_API_TOKEN,
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
       cache: 'no-store' // Prevent caching of old errors
     });
