@@ -89,7 +89,6 @@ const fetchWithFallback = async (targetUrl: string, options: RequestInit) => {
   for (const createProxyUrl of proxies) {
     try {
       const proxyUrl = createProxyUrl(targetUrl);
-      console.log(`Tentando conectar via: ${proxyUrl}`);
       
       const response = await fetch(proxyUrl, {
         ...options,
@@ -114,45 +113,56 @@ const fetchWithFallback = async (targetUrl: string, options: RequestInit) => {
 
 export const fetchJobs = async (): Promise<SelectyJobResponse[]> => {
   try {
-    // Based on Documentation Page 43: Feed de vagas
-    // GET https://api.selecty.app/v2/jobfeed/index
-    // Header: X-Api-Key
-    // Params: portal (optional but good practice), per_page
+    const portalName = 'metarh'; 
+    let allRawJobs: any[] = [];
+    let currentPage = 1;
+    let shouldFetch = true;
     
-    const portalName = 'metarh'; // Derived from metarh.selecty.com.br
-    
-    // ADICIONADO: Timestamp para evitar cache do navegador ou do proxy
-    const timestamp = new Date().getTime();
-    const url = `${API_BASE_URL}/jobfeed/index?portal=${portalName}&per_page=100&page=1&_t=${timestamp}`;
-    
-    const jsonData = await fetchWithFallback(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        // Documentation Page 43 specifies 'X-Api-Key' for jobfeed
-        'X-Api-Key': SELECTY_API_TOKEN,
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      },
-      cache: 'no-store' // Prevent caching of old errors
-    });
-    
-    // Robust handling for different API response structures
-    let list = [];
-    // Jobfeed structure is usually { current_page: "1", data: [...] }
-    if (jsonData && Array.isArray(jsonData.data)) {
-      list = jsonData.data;
-    } else if (Array.isArray(jsonData)) {
-      list = jsonData;
-    }
+    // Loop para buscar TODAS as páginas (Fetch Until Empty)
+    // Ignora 'last_page' da API e confia na presença de dados
+    while (shouldFetch) {
+        const timestamp = new Date().getTime();
+        // Aumentado per_page para 100 para reduzir requisições
+        const url = `${API_BASE_URL}/jobfeed/index?portal=${portalName}&per_page=100&page=${currentPage}&_t=${timestamp}`;
+        
+        console.log(`Buscando página ${currentPage}...`);
 
-    if (!Array.isArray(list)) {
-        console.warn("Formato de resposta da API inesperado:", jsonData);
-        return [];
-    }
+        const jsonData = await fetchWithFallback(url, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Api-Key': SELECTY_API_TOKEN,
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            cache: 'no-store'
+        });
+
+        let pageData: any[] = [];
+        
+        // Handle Selecty Response Structure
+        if (jsonData && Array.isArray(jsonData.data)) {
+            pageData = jsonData.data;
+        } else if (Array.isArray(jsonData)) {
+            pageData = jsonData;
+        }
+
+        if (pageData.length > 0) {
+            allRawJobs = [...allRawJobs, ...pageData];
+            currentPage++;
+        } else {
+            // Se a lista veio vazia, acabaram as páginas
+            shouldFetch = false;
+        }
+
+        // Safety break (max 50 pages * 100 jobs = 5000 jobs)
+        if (currentPage > 50) shouldFetch = false;
+    } 
+
+    console.log(`Total de vagas carregadas: ${allRawJobs.length}`);
 
     // Map Selecty API fields (JobFeed format) to our app's interface
-    return list.map((item: any) => {
+    const mappedJobs = allRawJobs.map((item: any) => {
       if (!item) return null;
       
       // Jobfeed provides location like "Curitiba - PR"
@@ -169,7 +179,6 @@ export const fetchJobs = async (): Promise<SelectyJobResponse[]> => {
       contractType = contractType.replace(/['"]+/g, '');
 
       // Build the FULL description by concatenating fields
-      // Selecty returns these as separate fields
       
       // Apply processing to main description to fix missing line breaks
       let fullDesc = processDescription(item.description || '');
@@ -194,17 +203,13 @@ export const fetchJobs = async (): Promise<SelectyJobResponse[]> => {
         fullDesc += `<br><br><h3><strong>Horário de Trabalho</strong></h3>${formatPlainTextToHtml(item.workSchedule)}`;
       }
 
-      // REMOVIDO: Bloco employerDescription (Sobre a Empresa/MetaRH)
-      
-      const summaryText = stripHtml(item.description || ''); // Keep summary short based on main desc
+      const summaryText = stripHtml(item.description || ''); 
       
       let title = item.title || 'Vaga sem título';
-      // Remove "Vaga para" prefix to clean up title in grid and other views
       title = title.replace(/^Vaga para\s+/i, '');
       
       const id = item.id || Math.random().toString(36).substr(2, 9);
       
-      // actingArea is usually the Department in JobFeed
       const department = item.actingArea || item.occupation || 'Geral';
 
       return {
@@ -217,15 +222,20 @@ export const fetchJobs = async (): Promise<SelectyJobResponse[]> => {
         department: department,
         contract_type: contractType,
         published_at: item.publicationDate || item.created_at,
-        // subscriptionUrl is the direct apply link in JobFeed
         url_apply: item.subscriptionUrl || item.url,
         remote: !!(item.title?.toLowerCase().includes('remoto') || item.location?.toLowerCase().includes('remoto'))
       };
     }).filter(item => item !== null) as SelectyJobResponse[];
     
+    // Sort by publication date (newest first) to ensure fresh jobs appear at top
+    return mappedJobs.sort((a, b) => {
+        const dateA = new Date(a.published_at || 0).getTime();
+        const dateB = new Date(b.published_at || 0).getTime();
+        return dateB - dateA;
+    });
+
   } catch (error: any) {
     console.error("Erro no serviço de vagas:", error);
-    // User-friendly message
     if (error.message && (error.message.includes("Failed to fetch") || error.message.includes("NetworkError"))) {
       throw new Error("Não foi possível conectar à Selecty devido a bloqueios de rede. Tentando reconexão...");
     }
