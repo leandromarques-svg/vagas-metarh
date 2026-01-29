@@ -1,6 +1,6 @@
 
 import { SelectyJobResponse } from '../types';
-import { SELECTY_API_TOKEN, API_BASE_URL } from '../constants';
+import { SELECTY_APP_ID, SELECTY_SECRET, API_BASE_URL } from '../constants';
 
 /**
  * Helper to strip HTML tags for summary generation
@@ -128,14 +128,15 @@ export const fetchJobs = async (): Promise<SelectyJobResponse[]> => {
         console.log(`Buscando página ${currentPage}...`);
 
         const jsonData = await fetchWithFallback(url, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'X-Api-Key': SELECTY_API_TOKEN,
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            },
-            cache: 'no-store'
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'app_id': SELECTY_APP_ID,
+            'secret': SELECTY_SECRET,
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          cache: 'no-store'
         });
 
         let pageData: any[] = [];

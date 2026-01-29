@@ -1,7 +1,8 @@
 
 // Configuration for MetaRH Selecty Integration
 
-export const SELECTY_API_TOKEN = "eyJpdiI6IjlRRENGQ0hVMWkwWDZSYlFsVFRaeEE9PSIsInZhbHVlIjoiaTFkaTd2TnhndHlnb2tNVC9jcU1MWDVvN1hGSVBVcDFiczZqZE9MMHdHRT0iLCJtYWMiOiIwODZhNjAwMDU2ODE0OWMyYTIyMTIxZGYyZGUyMTY3MjQ0MzQyMGQ4NGJlZjNhMTcxZGI3NmVmNzM0ZjVkNDA1IiwidGFnIjoiIn0=";
+export const SELECTY_APP_ID = "42c1bbaf-f76c-42a5-b1ca-54fa66c8488b";
+export const SELECTY_SECRET = "8DvpZ9MoEt5rB4i";
 
 // API Base URL
 export const API_BASE_URL = "https://api.selecty.app/v2";
