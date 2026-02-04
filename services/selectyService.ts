@@ -132,8 +132,6 @@ export const fetchJobs = async (): Promise<SelectyJobResponse[]> => {
         headers: {
           'Accept': 'application/json',
           'X-Api-Key': SELECTY_API_TOKEN,
-          'X-App-Id': SELECTY_APP_ID,
-          'X-Secret': SELECTY_SECRET,
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         },
